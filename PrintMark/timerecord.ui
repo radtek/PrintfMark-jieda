@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TimeRecord</class>
+ <widget class="QWidget" name="TimeRecord">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>348</width>
+    <height>260</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>时间记录</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
+   <item row="0" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>前待板时间</string>
+     </property>
+     <property name="buddy">
+      <cstring>timeEdit</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QTimeEdit" name="timeEdit">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">::up-button{width:0px;}
+::down-button{width:0px;}
+QTimeEdit{font: 32pt &quot;DigifaceWide&quot;;border-width:1px;border-style: inset;border-color: darkgray;color:rgb(160, 45, 0);}
+</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="displayFormat">
+      <string>mm:ss.z</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_4">
+     <property name="text">
+      <string>运行时间</string>
+     </property>
+     <property name="buddy">
+      <cstring>timeEdit_4</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QTimeEdit" name="timeEdit_4">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">::up-button{width:0px;}
+::down-button{width:0px;}
+QTimeEdit{font: 32pt &quot;DigifaceWide&quot;;border-width:1px;border-style: inset;border-color: darkgray;color:rgb(154, 154, 0);}
+
+</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="displayFormat">
+      <string>HH:mm:ss</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_2">
+     <property name="text">
+      <string>后待板时间</string>
+     </property>
+     <property name="buddy">
+      <cstring>timeEdit_2</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="label_3">
+     <property name="text">
+      <string>周期时间</string>
+     </property>
+     <property name="buddy">
+      <cstring>timeEdit_3</cstring>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QTimeEdit" name="timeEdit_2">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">::up-button{width:0px;}
+::down-button{width:0px;}
+QTimeEdit{font: 32pt &quot;DigifaceWide&quot;;border-width:1px;border-style: inset;border-color: darkgray;color:darkblue;}
+</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="displayFormat">
+      <string>mm:ss.z</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QTimeEdit" name="timeEdit_3">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">::up-button{width:0px;}
+::down-button{width:0px;}
+QTimeEdit{font: 32pt &quot;DigifaceWide&quot;;border-width:1px;border-style: inset;border-color: darkgray;color:darkcyan;}
+</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="displayFormat">
+      <string>mm:ss.z</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>timeEdit</tabstop>
+  <tabstop>timeEdit_2</tabstop>
+  <tabstop>timeEdit_3</tabstop>
+  <tabstop>timeEdit_4</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

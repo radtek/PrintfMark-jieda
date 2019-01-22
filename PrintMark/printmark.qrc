@@ -1,0 +1,35 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Resources/new.png</file>
+        <file>Resources/Load.png</file>
+        <file>Resources/Save.png</file>
+        <file>Resources/saveimage.png</file>
+        <file>Resources/About.png</file>
+        <file>Resources/signal-attention.png</file>
+        <file>Resources/signal-stop.png</file>
+        <file>Resources/printmark.png</file>
+        <file>Resources/ccw_b.png</file>
+        <file>Resources/cw_b.png</file>
+        <file>Resources/narrow.png</file>
+        <file>Resources/wider.png</file>
+        <file>Resources/Goto.png</file>
+        <file>Resources/Arrow Back.png</file>
+        <file>Resources/Arrow Down.png</file>
+        <file>Resources/Arrow Forward.png</file>
+        <file>Resources/Arrow Up.png</file>
+        <file>Resources/ccw.png</file>
+        <file>Resources/cw.png</file>
+        <file>Resources/Fall.png</file>
+        <file>Resources/gear.png</file>
+        <file>Resources/Home.png</file>
+        <file>Resources/IO.png</file>
+        <file>Resources/Raise.png</file>
+        <file>Resources/Setup.png</file>
+        <file>Resources/Stop.png</file>
+        <file>Resources/ZoomIn.png</file>
+        <file>Resources/ZoomOut.png</file>
+        <file>Resources/ZoomReset.png</file>
+        <file>1.png</file>
+        <file>2.png</file>
+    </qresource>
+</RCC>

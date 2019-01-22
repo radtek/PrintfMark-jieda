@@ -1,0 +1,2 @@
+cl /c /Od /Zi /DEBUG /EHsc /UTCP_FASTOPEN /I"D:\Visual Studio 2010 Ultimate\Microsoft SDKs\Windows\v7.0A\Include" main.cpp soapBasicHttpBinding_USCOREIFoxlinkAddService.cpp soapC.cpp stdsoap2.cpp 
+link /LIBPATH:"D:\Visual Studio 2010 Ultimate\Microsoft SDKs\Windows\v7.0A\Lib" main.obj soapBasicHttpBinding_USCOREIFoxlinkAddService.obj soapC.obj stdsoap2.obj
