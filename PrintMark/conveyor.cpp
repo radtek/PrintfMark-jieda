@@ -1,10 +1,11 @@
  #include "stdafx.h"
 #include "conveyor.h"
 
-Conveyor::Conveyor(Smp86xHandler* sh, QWidget *parent)
-	: QWidget(parent, Qt::Window|Qt::MSWindowsFixedSizeDialogHint)
+Conveyor::Conveyor(Smp86xHandler* sh, Smp86xHandler* sh2, QWidget *parent)
+	: QWidget(parent, Qt::Window | Qt::MSWindowsFixedSizeDialogHint)
 	, ui(new Ui::Conveyor())
 	, smp86xHandler(sh)
+	, smp86xHandler2(sh2)
 {
 	ui->setupUi(this);
 	QSpinBox* spinBoxes[] = {
@@ -35,28 +36,34 @@ Conveyor::~Conveyor()
 
 void Conveyor::on_toolButton_pressed()
 {
-	smp86xHandler->start(1, ui->spinBox->value(), ui->spinBox_2->value(), ui->spinBox_3->value()/1000.0);
+	smp86xHandler->setOutput(12, 0);
+	smp86xHandler->setOutput(13, 0);
+	//smp86xHandler->start(1, ui->spinBox->value(), ui->spinBox_2->value(), ui->spinBox_3->value()/1000.0);
 }
 
 void Conveyor::on_toolButton_2_pressed()
 {
-	smp86xHandler->start(1, ui->spinBox->value(), -ui->spinBox_2->value(), ui->spinBox_3->value()/1000.0);
+	smp86xHandler->setOutput(12, 0);
+	//smp86xHandler->start(1, ui->spinBox->value(), -ui->spinBox_2->value(), ui->spinBox_3->value()/1000.0);
 }
 
 void Conveyor::on_toolButton_3_pressed()
 {
-	smp86xHandler->start(2, ui->spinBox_4->value(), ui->spinBox_5->value(), ui->spinBox_6->value()/1000.0);
+	smp86xHandler->setOutput(14, 0);
+	smp86xHandler->setOutput(15, 0);
+	//smp86xHandler->start(2, ui->spinBox_4->value(), ui->spinBox_5->value(), ui->spinBox_6->value()/1000.0);
 }
 
 void Conveyor::on_toolButton_4_pressed()
 {
-	smp86xHandler->start(2, ui->spinBox_4->value(), -ui->spinBox_5->value(), ui->spinBox_6->value()/1000.0);
+	smp86xHandler->setOutput(14, 0);
+	//smp86xHandler->start(2, ui->spinBox_4->value(), -ui->spinBox_5->value(), ui->spinBox_6->value()/1000.0);
 }
 
 void Conveyor::on_toolButton_5_pressed()
 {
 #ifdef _OLD_VERSION
-	smp86xHandler->start(0, ui->spinBox_7->value(), ui->spinBox_8->value(), ui->spinBox_9->value()/1000.0);
+	smp86xHandler2->start(0, ui->spinBox_7->value(), ui->spinBox_8->value(), ui->spinBox_9->value()/1000.0);
 #else
 	smp86xHandler->start(2, ui->spinBox_7->value(), -ui->spinBox_8->value(), ui->spinBox_9->value() / 1000.0);
 #endif // _OLD_VERSION
@@ -65,7 +72,7 @@ void Conveyor::on_toolButton_5_pressed()
 void Conveyor::on_toolButton_6_pressed()
 {
 #ifdef _OLD_VERSION
-	smp86xHandler->start(0, ui->spinBox_7->value(), -ui->spinBox_8->value(), ui->spinBox_9->value()/1000.0);
+	smp86xHandler2->start(0, ui->spinBox_7->value(), -ui->spinBox_8->value(), ui->spinBox_9->value()/1000.0);
 #else
 	smp86xHandler->start(2, ui->spinBox_7->value(), ui->spinBox_8->value(), ui->spinBox_9->value()/1000.0);
 #endif // _OLD_VERSION
@@ -73,52 +80,64 @@ void Conveyor::on_toolButton_6_pressed()
 
 void Conveyor::on_toolButton_7_pressed()
 {
-	smp86xHandler->start(3, ui->spinBox_10->value(), ui->spinBox_11->value(), ui->spinBox_12->value() / 1000.0);
+	smp86xHandler->setOutput(16, 0);
+	smp86xHandler->setOutput(17, 0);
+	//smp86xHandler2->start(3, ui->spinBox_10->value(), ui->spinBox_11->value(), ui->spinBox_12->value() / 1000.0);
 }
 
 void Conveyor::on_toolButton_8_pressed()
 {
-	smp86xHandler->start(3, ui->spinBox_10->value(), -ui->spinBox_11->value(), ui->spinBox_12->value() / 1000.0);
+	smp86xHandler->setOutput(16, 0);
+	//smp86xHandler2->start(3, ui->spinBox_10->value(), -ui->spinBox_11->value(), ui->spinBox_12->value() / 1000.0);
 }
 
 void Conveyor::on_toolButton_released()
 {
-	smp86xHandler->stop(1);
+	smp86xHandler->setOutput(12, 1);
+	smp86xHandler->setOutput(13, 1);
+	//smp86xHandler->stop(1);
 }
 
 void Conveyor::on_toolButton_2_released()
 {
-	smp86xHandler->stop(1);
+	smp86xHandler->setOutput(12, 1);
+	//smp86xHandler->stop(1);
 }
 
 void Conveyor::on_toolButton_3_released()
 {
-	smp86xHandler->stop(2);
+	smp86xHandler->setOutput(14, 1);
+	smp86xHandler->setOutput(15, 1);
+	//smp86xHandler->stop(2);
 }
 
 void Conveyor::on_toolButton_4_released()
 {
-	smp86xHandler->stop(2);
+	smp86xHandler->setOutput(14, 1);
+	//smp86xHandler->stop(2);
 }
 
 void Conveyor::on_toolButton_5_released()
 {
-	smp86xHandler->stop(0);
+	smp86xHandler2->stop(0);
 }
 
 void Conveyor::on_toolButton_6_released()
 {
-	smp86xHandler->stop(0);
+	smp86xHandler2->stop(0);
 }
 
 void Conveyor::on_toolButton_7_released()
 {
-	smp86xHandler->stop(3);
+	smp86xHandler->setOutput(16, 1);
+	smp86xHandler->setOutput(17, 1);
+	//smp86xHandler2->stop(3);
 }
 
 void Conveyor::on_toolButton_8_released()
 {
-	smp86xHandler->stop(3);
+	smp86xHandler->setOutput(16, 1);
+	//smp86xHandler2->stop(3);
 }
 
 void Conveyor::on_pushButton_clicked()

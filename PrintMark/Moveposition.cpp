@@ -6,6 +6,13 @@ Moveposition::Moveposition(QWidget *parent)
 {
 	ui.setupUi(this);
 	ui.lineEdit_3->setText("0");
+	ui.lineEdit->setText("0");
+	ui.lineEdit_2->setText("0");
+	QRegExp rx1("[+-]?[0-9]*\.?[0-9]*$");
+	QRegExpValidator *validator1 = new QRegExpValidator(rx1, this);
+	ui.lineEdit->setValidator(validator1);
+	ui.lineEdit_2->setValidator(validator1);
+	ui.lineEdit_3->setValidator(validator1);
 }
 
 void Moveposition::setTable(QTableWidget * table1)
@@ -34,12 +41,12 @@ void Moveposition::on_pushButton_clicked()
 	{
 		for (int i = 0; i < item_count; i++)
 		{
-			double x = tableWidget->item(i, 1)->text().toDouble() + ui.lineEdit->text().toDouble();
-			double y = tableWidget->item(i, 2)->text().toDouble() + ui.lineEdit_2->text().toDouble();
-			float u = tableWidget->item(i, 5)->text().toDouble() + ui.lineEdit_3->text().toDouble();
-			tableWidget->item(i, 1)->setText(QString("%1").arg(x, 0, 'f', 3));
-			tableWidget->item(i, 2)->setText(QString("%1").arg(y, 0, 'f', 3));
-			tableWidget->item(i, 5)->setText(QString("%1").arg(u, 0, 'f', 0));
+			double x = tableWidget->item(mylsit[i], 1)->text().toDouble() + ui.lineEdit->text().toDouble();
+			double y = tableWidget->item(mylsit[i], 2)->text().toDouble() + ui.lineEdit_2->text().toDouble();
+			float u = tableWidget->item(mylsit[i], 5)->text().toDouble() + ui.lineEdit_3->text().toDouble();
+			tableWidget->item(mylsit[i], 1)->setText(QString("%1").arg(x, 0, 'f', 3));
+			tableWidget->item(mylsit[i], 2)->setText(QString("%1").arg(y, 0, 'f', 3));
+			tableWidget->item(mylsit[i], 5)->setText(QString("%1").arg(u, 0, 'f', 0));
 		}
 	}
 }

@@ -19,10 +19,16 @@ SysSetup::SysSetup(QWidget *parent)
 		ui->comboBox_2->setItemData(ui->comboBox_2->count() - 1, port.portName());
 		ui->comboBox_3->addItem( port.portName() );
 		ui->comboBox_3->setItemData(ui->comboBox_3->count()-1, port.portName());
+		ui->comboBox_4->addItem(port.portName());
+		ui->comboBox_4->setItemData(ui->comboBox_4->count() - 1, port.portName());
+		ui->comboBox_5->addItem(port.portName());
+		ui->comboBox_5->setItemData(ui->comboBox_5->count() - 1, port.portName());
 	}
 	ui->comboBox->setCurrentText(settings.value("Smp86x/port1", "COM1").toString());
 	ui->comboBox_2->setCurrentText(settings.value("Smp86x/port2", "COM2").toString());
 	ui->comboBox_3->setCurrentIndex(ui->comboBox_3->findData(settings.value("Print/port", "COM3").toString()));
+	ui->comboBox_4->setCurrentText(settings.value("Electricity/com", "COM1").toString());
+	ui->comboBox_5->setCurrentText(settings.value("AirPressure/com", "COM2").toString());
 	int port_mode = settings.value("port_mode", 0).toInt();
 	ui->radioButton->setChecked(port_mode == 0);
 	ui->radioButton_2->setChecked(port_mode == 1);
@@ -70,6 +76,8 @@ void SysSetup::accept()
 	settings.setValue("door_stop", ui->checkBox->isChecked());
 	settings.setValue("Smp86x/speed_ratio", ui->spinBox_2->value());
 	settings.setValue("Maintain/duration", ui->spinBox_3->value());
+	settings.setValue("Electricity/com", ui->comboBox_4->currentText());
+	settings.setValue("AirPressure/com", ui->comboBox_5->currentText());
 	QDialog::accept();
 }
 

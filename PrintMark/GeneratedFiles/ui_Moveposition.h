@@ -86,6 +86,7 @@ public:
 
 
         retranslateUi(Moveposition);
+        QObject::connect(pushButton_2, SIGNAL(clicked()), Moveposition, SLOT(close()));
 
         QMetaObject::connectSlotsByName(Moveposition);
     } // setupUi

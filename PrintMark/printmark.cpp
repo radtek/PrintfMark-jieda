@@ -86,6 +86,10 @@ PrintMark::PrintMark(QWidget *parent)
 	connect(ui->tableWidget_2->verticalScrollBar(), SIGNAL(valueChanged(int)), 
 		ui->tableWidget->verticalScrollBar(), SLOT(setValue(int)));
 
+// 	connect(ui->tableWidget, &QTableWidget::itemSelectionChanged, [this](){
+// 		drawToAngel();
+// 	});
+
 	ui->tableWidget_3->blockSignals(true);
 	ui->tableWidget_3->setColumnWidth(0, 30);
 	ui->tableWidget_3->item(0, 0)->setCheckState(Qt::Checked);
@@ -189,10 +193,7 @@ PrintMark::PrintMark(QWidget *parent)
 	ui->horizontalLayout_5->addWidget(platform);
 	connect(platform, SIGNAL(reset()), this, SLOT(slotHomeQuestion()));
 
-	QString comport = settings.value("Power Consumption", "COM4").toString();
-	smp86xHandler[2] = new Smp86xHandler(comport,1);
-
-	conveyor = new Conveyor(smp86xHandler[1], this);
+	conveyor = new Conveyor(smp86xHandler[0],smp86xHandler[1], this);
 	conveyor->hide();
 // 	connect(conveyor->ui->pushButton, &QPushButton::clicked, ui->pushButton_19, &QPushButton::click);
 // 	connect(conveyor->ui->pushButton_2, &QPushButton::clicked, ui->pushButton_20, &QPushButton::click);
@@ -298,8 +299,8 @@ PrintMark::PrintMark(QWidget *parent)
 			labelCom[3]->setText("NULL");
 		});
  	}
-	//ÉèÖÃ²»·´À¡£¬Çå¿ÕRS232»º´æ¶ÓÁÐ
-	QByteArray device_data = QString("OE00001").toLatin1();
+	//ÉèÖÃ²»·´À¡£¬Çå¿ÕÅçÂë»ú»º´æ¶ÓÁÐ
+	QByteArray device_data = QString("I12OE00000").toLatin1();
 	QByteArray device_data2 = QString("I1 ").toLatin1();
 	if (labelCom[2]->text() != "NULL")
 	{
@@ -422,6 +423,7 @@ PASSC:
 			ui->pushButton_26->setVisible(false);
 //		}
 		ui->menu_S->removeAction(ui->actionSfc);
+	//	ui->menu_S->removeAction(ui->actiondpyBattery);
 #else
 		ui->menuBar->removeAction(ui->menu_D->menuAction());
 #endif // FoxlinkAdd
@@ -433,6 +435,7 @@ PASSC:
 			setWindowTitle(QString::fromUtf16(L"×Ô¶¯ÅçÂëÏµÍ³ - %1[*]").arg(fileName));
 		}
 		updateStatistics();
+		drawToAngel();
 	});
 	connect(timer, &QTimer::timeout, this, &PrintMark::slotProcMcu);
 	timer->start(1000);
@@ -442,6 +445,12 @@ PASSC:
 	timer->start(50);
 	if (smp86xHandler[0]->isOpen())
 		slotHomeQuestion();
+	//´´½¨µçÁ¿´®¿ÚÍ¨Ñ¶
+	QString comport = settings.value("Electricity/com", "COM1").toString();
+	smp86xHandler[2] = new Smp86xHandler(comport, 1);
+	//´´½¨ÆøÑ¹´®¿ÚÍ¨Ñ¶
+	QString comport2 = settings.value("AirPressure/com", "COM2").toString();
+	smp86xHandler[3] = new Smp86xHandler(comport2, 2);
 #ifdef _OLD_VERSION
 	QTimer::singleShot(0, this, SLOT(slotCheckExpire()));
 	QTimer::singleShot(0, this, SLOT(slotRenewCode()));
@@ -628,13 +637,18 @@ void PrintMark::on_actionSysSetup_triggered()
 // #endif // _OLD_VERSION
 		RunParams* runParams = findChild<RunParams*>();
 		if(runParams) runParams->setHandler(smp86xHandler[0]);
+		int port_mode = settings.value("port_mode", 0).toInt();
 
 		if (device->isOpen())
 			delete device;
-// 		if (ink_device->isOpen())
-// 			delete ink_device;
 
-		int port_mode = settings.value("port_mode", 0).toInt();
+		if (port_mode != 0)
+		{
+			if (ink_device->isOpen())
+				delete ink_device;
+		}
+		
+
 		if(port_mode == 0)
 		{
 			QSerialPort* port = new QSerialPort();
@@ -1317,8 +1331,8 @@ void PrintMark::on_pushButton_4_clicked()// ¿ªÊ¼
 	else if (tcpSocket->state() != QAbstractSocket::ConnectedState)
 		QMessageBox::information(this, QString::fromUtf16(L"ÌáÊ¾"), QString::fromUtf16(L"ÊÓ¾õÄ£¿éÎ´¾ÍÐ÷"));
 	//addMessage(QString::fromUtf16(L"ÊÓ¾õÄ£¿éÎ´¾ÍÐ÷"), Qt::red);
-	else if (!device->isOpen())
-		QMessageBox::information(this, QString::fromUtf16(L"ÌáÊ¾"), QString::fromUtf16(L"ÅçÂë»úÍ¨Ñ¶¹ÊÕÏ"));
+	else if (!device->isOpen() && !ui->checkBox_9->isChecked())
+		QMessageBox::information(this, QString::fromUtf16(L"ÌáÊ¾"), QString::fromUtf16(L"ÅçÂë»úÎ´Á¬½Ó"));
 	//addMessage(QString::fromUtf16(L"ÅçÂë»úÍ¨Ñ¶¹ÊÕÏ"), Qt::red);
 // 	else if (!ink_device->isOpen())
 // 		QMessageBox::information(this, QString::fromUtf16(L"ÌáÊ¾"), QString::fromUtf16(L"Ä«Ë®»úÍ¨Ñ¶¹ÊÕÏ"));
@@ -1362,6 +1376,9 @@ void PrintMark::on_pushButton_5_clicked()// Í£Ö¹
 	//smp86xHandler[0]->stopAll();
 	//smp86xHandler[0]->stopAll();
 	procFlag.conveyor_ready = false;
+	ushort flagstop[2] = { 0, };
+	flagstop[0] = 1;
+	smp86xHandler[0]->writeRawData(0x178, 1, (ushort*)flagstop);  //µ×²ãÅÐ¶Ï
 #ifdef _OLD_VERSION
 	smp86xHandler[0]->stopAll();
 	smp86xHandler[1]->stopAll();
@@ -2187,8 +2204,9 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
  	case 11:
  		if (((ss[0].inputs >> 10) & 0x1) == 0 )	       // ½ø°åÓÐÐÅºÅ,ÓÐ°å½øÀ´
  		{	
- 			smp86xHandler[0]->setOutput(0, 1);				// ¹ØÉÏÎ»»úÐÅºÅ
- 			smp86xHandler[1]->start(1, v1, -v2, v3 / 1000.0);	// Æô¶¯µç»ú1	
+			smp86xHandler[0]->setOutput(0, 1);				// ¹ØÉÏÎ»»úÐÅºÅ
+			smp86xHandler[0]->setOutput(12, 0);				// Æô¶¯µç»ú1
+ 			//smp86xHandler[1]->start(1, v1, -v2, v3 / 1000.0);		
 			addMessage(QString::fromUtf16(L"conveyor1 move!%1").arg(_step1), Qt::blue);
  			_step1 = 12;
 			time1.restart();
@@ -2200,15 +2218,13 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		{
 			break;
 		}
-// 		ushort flagstop[1] = { 0, };
-// 		flagstop[0] = 1;
-// 		smp86xHandler[1]->writeRawData(0x178, 2, (ushort*)flagstop);  //µ×²ãÅÐ¶Ï
 		_step1 = 13;
 		break;
  	case 13:
 		if (((ss[0].inputs >> 18) & 0x1) == 0)	// ´æ°å¸ÐÓ¦µ½°å
 		{
-			smp86xHandler[1]->stop(1);
+			smp86xHandler[0]->setOutput(12, 1);				// stopµç»ú1
+			//smp86xHandler[1]->stop(1);
 			addMessage(QString::fromUtf16(L"conveyor1 stop!%1").arg(_step1), Qt::blue);
 			_step1 = 16;
 		}
@@ -2260,7 +2276,8 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 	case 1:
 		if (((ss[0].inputs >> 18) & 0x1) == 0 && _step1 == 0)
 		{
-			smp86xHandler[1]->start(1, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú1
+			smp86xHandler[0]->setOutput(12, 0);				// Æô¶¯µç»ú1
+			//smp86xHandler[1]->start(1, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú1
 			_step2 = 160;
 			time2.restart();
 		}
@@ -2270,7 +2287,8 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		{
 			break;
 		}
-		smp86xHandler[1]->start(2, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú2
+		smp86xHandler[0]->setOutput(14, 0);				// Æô¶¯µç»ú2
+		//smp86xHandler[1]->start(2, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú2
 		_step2 = 2;
 		break;
 	case 2:
@@ -2278,7 +2296,8 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		{
 			if (((ss[0].inputs >> 10) & 0x1) == 1)  //ÅÐ¶ÏÊÇ·ñÒÑ¾­Èë°å£¬Èç¹ûÈë°åÔò²»Í£Ö¹´«ËÍ´ø
 			{
-				smp86xHandler[1]->stop(1);
+				smp86xHandler[0]->setOutput(12, 1);				// stopµç»ú1
+				//smp86xHandler[1]->stop(1);
 				addMessage(QString::fromUtf16(L"conveyor1 stop! _step2 %1").arg(_step2), Qt::blue);
 			}
 			_step2 = 3;
@@ -2294,7 +2313,8 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 	case 4:
 		if (time2.elapsed() < dalay_broad)
 			break;
-		smp86xHandler[1]->stop(2);
+		smp86xHandler[0]->setOutput(14, 1);				// stopµç»ú2
+		//smp86xHandler[1]->stop(2);
 		_step2 = 10;
 		break;
 	case 10:
@@ -2308,20 +2328,30 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		_step2 = 20;
 		break;
 	case 20:
+		time2.restart();
 		smp86xHandler[0]->setOutput(5, procFlag.conveyor_pass ? 1 : 0);	   //Í¦°å
 		_step2 = 21;
 		break;
 	case 21:
+		if (time2.elapsed()>3000)
+		{
+			addMessage(QString::fromUtf16(L"Í¦°å³¬3ÃëÃ»µ½Î»"), Qt::red);
+		}
 		if (((ss[0].inputs >> 16) & 0x1) == 0 || procFlag.conveyor_pass)	//Í¦°åµ½Î»
 		{
 			_step2 = 30;
 		}
 		break;
 	case 30:
+		time2.restart();
 		smp86xHandler[0]->setOutput(4, procFlag.conveyor_pass ? 1 : 0);	   //Ñ¹°å
 		_step2 = 40;
 		break;
 	case 40:
+		if (time2.elapsed() > 3000)
+		{
+			addMessage(QString::fromUtf16(L"Ñ¹°å³¬3ÃëÃ»µ½Î»"), Qt::red);
+		}
 		if (((ss[0].inputs >> 15) & 0x1) == 0 || procFlag.conveyor_pass)   //Ñ¹°åµ½Î»
 		{
 			_step2 = 50;
@@ -2373,8 +2403,10 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		}
 		break;
 	case 70:
-		smp86xHandler[1]->start(2, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú2
-		smp86xHandler[1]->start(3, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú3
+		smp86xHandler[0]->setOutput(14, 0);				// Æô¶¯µç»ú2
+		smp86xHandler[0]->setOutput(16, 0);				// Æô¶¯µç»ú3
+// 		smp86xHandler[1]->start(2, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú2
+// 		smp86xHandler[1]->start(3, v1, -v2, v3 / 1000.0);     // Æô¶¯µç»ú3
 		timeOut.restart();
 		_step2 = 71;
 		break;
@@ -2387,14 +2419,16 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 	case 80:
 		if (((ss[0].inputs>>12) & 0x1) == 0)	//ÏÂÎ»Í¨ÐÅ,³öÁÏ¸ÐÓ¦
 		{
-			smp86xHandler[1]->stop(2);
+			smp86xHandler[0]->setOutput(14, 1);				// stopµç»ú2
+			//smp86xHandler[1]->stop(2);
 			_step2 = 81;
 		}
 		break;
 	case 81:
 		if (((ss[0].inputs >> 12) & 0x1) == 1)
 		{
-			smp86xHandler[1]->stop(3);
+			smp86xHandler[0]->setOutput(16, 1);				// stopµç»ú3
+			//smp86xHandler[1]->stop(3);
 			timeRecord->setTime(1, timeOut.elapsed());
 			_step2 = 0;
 		}
@@ -3040,6 +3074,7 @@ void PrintMark::runPrinting(SMP86X_STATUS ss[])
 {
 	static int _step = 0, _index = 0, order = 0 , sumNumber = 1;
 	static float x, y, z, u ,flagSame;
+	static float dx1, dy1;
 	static QTime time;
 	static QMutex _mutex;
 	if (!_mutex.tryLock())
@@ -3161,7 +3196,21 @@ void PrintMark::runPrinting(SMP86X_STATUS ss[])
 				ui->tableWidget_3->item(i, 3)->setText(QString("%1").arg(x, 0, 'f', 3));
 				ui->tableWidget_3->item(i, 4)->setText(QString("%1").arg(y, 0, 'f', 3));
 			}
-			_step = 60;
+			//Çå»º´æ
+			{
+				if (!ui->checkBox_9->isChecked())
+				{
+					QByteArray device_data = QString("OE00002").toLatin1();
+					QByteArray device_data2 = QString("OE00001").toLatin1();
+					sendpre = sendInkData(device, device_data);
+					sendpre2 = sendInkData(device, device_data2);
+					if (!sendpre && !sendpre2)
+						QMessageBox::information(this, QString::fromUtf16(L"ÅçÂë»ú´íÎó"), QString::fromUtf16(L"ÅçÂë»úÎÞ·¨½øÐÐ³õÊ¼»¯\n"), QString::fromUtf16(L"È·¶¨"));
+					else
+						addMessage(QString::fromUtf16(L"³õÊ¼»¯³É¹¦"), Qt::blue);
+				}
+			}
+			_step = 55;
 			_index = 0;
 			break;
 		}
@@ -3368,8 +3417,65 @@ void PrintMark::runPrinting(SMP86X_STATUS ss[])
 		}
 		/*if (ui->checkBox->isChecked())*/
 			//	smp86xHandler[0]->setPWM(0, settings.value("Light/badm", 30).toInt()*255/100);
-			_step = 60;
+		_step = 55;
 		_index = 0;
+		break;
+	case 55:
+		//send print code comment
+		for (int i = 0; i < ui->tableWidget->rowCount(); i++)
+		{
+			if (ui->tableWidget->item(i,0)->checkState() == Qt::Unchecked)
+				continue;
+		_NEXT1:
+			QString textModel = ui->tableWidget->item(i, 6)->text();
+			curPrintf = ui->tableWidget->item(i, 6)->text().toInt() - 1;
+			chushi = 1;
+			updateStatistics();
+			text = ui->lineEdit_2->text();
+			_Database::check(text.toLatin1(), t);
+			if (t != 0)
+			{
+				sigStat.alarm = 0;
+				if (!ui->checkBox_7->isChecked())
+				{
+					goto FLAG3;
+					sigStat.alarm = 1;
+				}
+				int res = QMessageBox::warning(this, QString::fromUtf16(L"·¢ÏÖÖØÂë"), QString::fromUtf16(L"%1\nµÄÉÏ´Î´òÓ¡Ê±¼äÎª:\n%2").arg(text).arg(ctime(&t)), QString::fromUtf16(L"ÏÂÒ»¸ö"), QString::fromUtf16(L"ÔÝÍ£"));
+				sigStat.alarm = 1;
+				switch (res)
+				{
+				case 0:
+					updateStatistics();
+					goto _NEXT1;
+				case 1:
+					procFlag.printing_pause = true;
+					return;
+				}
+			}
+		FLAG3:
+			if (!ui->checkBox_9->isChecked())
+			{
+				QString Schangtext = QString("P1%1").arg(textModel);
+				bool exit3 = sendInkData(device, Schangtext.toLatin1());
+				if (!exit3)
+				{
+					QMessageBox::information(this, QString::fromUtf16(L"ÅçÂë»ú´íÎó"), QString::fromUtf16(L"ÅçÂë»úÎÞ·¨¸ü¸ÄÎÄ±¾\n"), QString::fromUtf16(L"È·¶¨"));
+					procFlag.printing_pause = true;
+					return;
+				}
+				bool exit2 = printfCurText();    //·¢ËÍÅçÓ¡Êý¾Ý
+				if (!exit2)
+				{
+					return;
+				}
+				ui->tableWidget->item(i, 0)->setText(text);
+			}
+			addMessage(QString("send data times:%1").arg(i), Qt::blue);
+			updateStatistics();
+		}
+		_step = 60;
+		break;
 	case 60:
 		if (!ui->checkBox->isChecked())
 		{
@@ -3773,51 +3879,67 @@ IGNORE1:
 			{
 				x = ui->tableWidget->item(_index, 3)->text().toDouble() - ax + dx;
 				y = ui->tableWidget->item(_index, 4)->text().toDouble() - ay + dy;
+				dx1 = offsetFly * cos(u*M_PI / 180);
+				dy1 = offsetFly * sin(u*M_PI / 180);
 				order = 1;
 				if (ui->tableWidget->item(_index, 5)->text().toInt() == 0)
 				{
-					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - offsetFly, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos), speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					addMessage(QString("X  postion  %1").arg(x), Qt::blue);
+					addMessage(QString("Y postion %1").arg(y), Qt::blue);
 					flyprintf.Pos[0] = x / pulseEquivalent[0];
 					flyprintf.axis = 0;
 					flyprintf.mode = 1;
 				}
 				if (ui->tableWidget->item(_index, 5)->text().toInt() == 90)
 				{
-					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - offsetFly, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos - dx1), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					addMessage(QString("X postion %1").arg(x), Qt::blue);
+					addMessage(QString("Y postion %1").arg(y), Qt::blue);
 					flyprintf.Pos[0] = y / pulseEquivalent[1];
 					flyprintf.axis = 1;
 					flyprintf.mode = 1;
 				}
 				if (ui->tableWidget->item(_index, 5)->text().toInt() == 180)
 				{
-					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) + offsetFly, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos), speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) -dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					addMessage(QString("X postion %1").arg(x), Qt::blue);
+					addMessage(QString("Y postion %1").arg(y), Qt::blue);
 					flyprintf.Pos[0] = x / pulseEquivalent[0];
 					flyprintf.axis = 0;
 					flyprintf.mode = 2;
 				}
 				if (ui->tableWidget->item(_index, 5)->text().toInt() == 270)
 				{
-					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) + offsetFly, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos - dx1), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+					addMessage(QString("X postion %1").arg(x), Qt::blue);
+					addMessage(QString("Y postion %1").arg(y), Qt::blue);
 					flyprintf.Pos[0] = y / pulseEquivalent[1];
 					flyprintf.axis = 1;
 					flyprintf.mode = 2;
-				}
+				} 
 			}
 			else
 			{
 				x = ui->tableWidget->item(_index - order-sumNumber+2, 3)->text().toDouble() - ax + dx;
 				y = ui->tableWidget->item(_index - order-sumNumber+2, 4)->text().toDouble() - ay + dy;
+				dx1 = offsetFly * cos(u*M_PI / 180);
+				dy1 = offsetFly * sin(u*M_PI / 180);
 				if (flagSame == 1)
 				{
 					if (ui->tableWidget->item(_index, 5)->text().toInt() == 90)
 					{
-						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - offsetFly, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						addMessage(QString("X postion %1").arg(x), Qt::blue);
+						addMessage(QString("Y postion %1").arg(y), Qt::blue);
 						flyprintf.axis = 1;
 						flyprintf.mode = 1;
 					}	
 					else
 					{
-						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos), (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) + offsetFly, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos) - dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						addMessage(QString("X postion %1").arg(x), Qt::blue);
+						addMessage(QString("Y postion %1").arg(y), Qt::blue);
 						flyprintf.axis = 1;
 						flyprintf.mode = 2;
 					}
@@ -3826,13 +3948,18 @@ IGNORE1:
 				{
 					if (ui->tableWidget->item(_index, 5)->text().toInt() == 0)
 					{
-						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - offsetFly, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos), speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) - dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos)-dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						addMessage(QString("X postion %1").arg(x), Qt::blue);
+						addMessage(QString("Y postion %1").arg(y), Qt::blue);
 						flyprintf.axis = 0;
 						flyprintf.mode = 1;
 					}
 					else
 					{
-						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) + offsetFly, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos), speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						smp86xHandler[0]->start(0, 1, (x / pulseEquivalent[0] - ss[0].axis_status[0].logicPos) -dx1, (y / pulseEquivalent[1] - ss[0].axis_status[1].logicPos)-dy1, speedValue[0], speedValue[1] * speed, speedValue[2] / 1000.0);
+						addMessage(QString("X postion %1").arg(x), Qt::blue);
+						addMessage(QString("Y postion %1").arg(y), Qt::blue);
+
 						flyprintf.axis = 0;
 						flyprintf.mode = 2;
 					}
@@ -3843,6 +3970,9 @@ IGNORE1:
 			flyprintf.order = order;
 			if (smp86xHandler[0]->writeRawData(0x180, sizeof(flyprintf)/2, (ushort *)&flyprintf) == -1)
 				QMessageBox::warning(this, QString::fromUtf16(L"¾¯¸æ"), QString::fromUtf16(L"Êý¾Ý´«ÊäÊ§°Ü"));
+			QString showout;
+			for(int a = 0; a<order;a++)
+				addMessage(showout.setNum(flyprintf.Pos[a]), Qt::blue);
 			procFlag.real_time = true;
 			if (order != 1)
 			{
@@ -3854,52 +3984,52 @@ IGNORE1:
 		break;
 	case 92:
 	{	
-	_NEXT:
-		QString textModel = ui->tableWidget->item(_index, 6)->text();
-		curPrintf = ui->tableWidget->item(_index, 6)->text().toInt()-1;	
-		chushi = 1;
-		updateStatistics();
-		text = ui->lineEdit_2->text();
-		_Database::check(text.toLatin1(), t);
-		if (t != 0)
-		{
-			sigStat.alarm = 0;
-			if (!ui->checkBox_7->isChecked())
-			{
-				goto FLAG2;
-				sigStat.alarm = 1;
-			}
-			int res = QMessageBox::warning(this, QString::fromUtf16(L"·¢ÏÖÖØÂë"), QString::fromUtf16(L"%1\nµÄÉÏ´Î´òÓ¡Ê±¼äÎª:\n%2").arg(text).arg(ctime(&t)), QString::fromUtf16(L"ÏÂÒ»¸ö"), QString::fromUtf16(L"ÔÝÍ£"));
-			sigStat.alarm = 1;
-			switch (res)
-			{
-			case 0:
-				updateStatistics();
-				goto _NEXT;
-				break;
-			case 1:
-				procFlag.printing_pause = true;
-				return;
-			}
-		}	
-FLAG2:
-		if (!ui->checkBox_9->isChecked())
-		{
-			QString Schangtext = QString("P1%1").arg(textModel);
-			bool exit3 = sendInkData(device, Schangtext.toLatin1());
-			if (!exit3)
-			{
-				QMessageBox::information(this, QString::fromUtf16(L"ÅçÂë»ú´íÎó"), QString::fromUtf16(L"ÅçÂë»úÎÞ·¨¸ü¸ÄÎÄ±¾\n"), QString::fromUtf16(L"È·¶¨"));
-				procFlag.printing_pause = true;
-				return;
-			}
-			bool exit2 = printfCurText();    //Æô¶¯ÅçÓ¡
-			if (!exit2)
-			{
-				return;
-			}
-			ui->tableWidget->item(_index, 0)->setText(text);
-		}	
+// 	_NEXT:
+// 		QString textModel = ui->tableWidget->item(_index, 6)->text();
+// 		curPrintf = ui->tableWidget->item(_index, 6)->text().toInt()-1;	
+// 		chushi = 1;
+// 		updateStatistics();
+// 		text = ui->lineEdit_2->text();
+// 		_Database::check(text.toLatin1(), t);
+// 		if (t != 0)
+// 		{
+// 			sigStat.alarm = 0;
+// 			if (!ui->checkBox_7->isChecked())
+// 			{
+// 				goto FLAG2;
+// 				sigStat.alarm = 1;
+// 			}
+// 			int res = QMessageBox::warning(this, QString::fromUtf16(L"·¢ÏÖÖØÂë"), QString::fromUtf16(L"%1\nµÄÉÏ´Î´òÓ¡Ê±¼äÎª:\n%2").arg(text).arg(ctime(&t)), QString::fromUtf16(L"ÏÂÒ»¸ö"), QString::fromUtf16(L"ÔÝÍ£"));
+// 			sigStat.alarm = 1;
+// 			switch (res)
+// 			{
+// 			case 0:
+// 				updateStatistics();
+// 				goto _NEXT;
+// 				break;
+// 			case 1:
+// 				procFlag.printing_pause = true;
+// 				return;
+// 			}
+// 		}	
+// FLAG2:
+// 		if (!ui->checkBox_9->isChecked())
+// 		{
+// 			QString Schangtext = QString("P1%1").arg(textModel);
+// 			bool exit3 = sendInkData(device, Schangtext.toLatin1());
+// 			if (!exit3)
+// 			{
+// 				QMessageBox::information(this, QString::fromUtf16(L"ÅçÂë»ú´íÎó"), QString::fromUtf16(L"ÅçÂë»úÎÞ·¨¸ü¸ÄÎÄ±¾\n"), QString::fromUtf16(L"È·¶¨"));
+// 				procFlag.printing_pause = true;
+// 				return;
+// 			}
+// 			bool exit2 = printfCurText();    //Æô¶¯ÅçÓ¡
+// 			if (!exit2)
+// 			{
+// 				return;
+// 			}
+// 			ui->tableWidget->item(_index, 0)->setText(text);
+// 		}	
 		_step = 100;
 		break;
 	}
@@ -3932,57 +4062,6 @@ FLAG2:
 			break;
 		}
 	case 102:
-		for (int i = order - 1; i>=0; i--)
-		{
-		_NEXT1:
-			QString textModel = ui->tableWidget->item(_index - i, 6)->text();
-			curPrintf = ui->tableWidget->item(_index - i, 6)->text().toInt() - 1;
-			chushi = 1;
-			updateStatistics();
-			text = ui->lineEdit_2->text();
-			_Database::check(text.toLatin1(), t);
-			if (t != 0)
-			{
-				sigStat.alarm = 0;
-				if (!ui->checkBox_7->isChecked())
-				{
-					goto FLAG3;
-					sigStat.alarm = 1;
-				}
-				int res = QMessageBox::warning(this, QString::fromUtf16(L"·¢ÏÖÖØÂë"), QString::fromUtf16(L"%1\nµÄÉÏ´Î´òÓ¡Ê±¼äÎª:\n%2").arg(text).arg(ctime(&t)), QString::fromUtf16(L"ÏÂÒ»¸ö"), QString::fromUtf16(L"ÔÝÍ£"));
-				sigStat.alarm = 1;
-				switch (res)
-				{
-				case 0:
-					updateStatistics();
-					goto _NEXT1;
-				case 1:
-					procFlag.printing_pause = true;
-					return;
-				}
-			}
-FLAG3:
-			if (!ui->checkBox_9->isChecked())
-			{
-				QString Schangtext = QString("P1%1").arg(textModel);
-				bool exit3 = sendInkData(device, Schangtext.toLatin1());
-				if (!exit3)
-				{
-					QMessageBox::information(this, QString::fromUtf16(L"ÅçÂë»ú´íÎó"), QString::fromUtf16(L"ÅçÂë»úÎÞ·¨¸ü¸ÄÎÄ±¾\n"), QString::fromUtf16(L"È·¶¨"));
-					procFlag.printing_pause = true;
-					return;
-				}
-				bool exit2 = printfCurText();    //Æô¶¯ÅçÓ¡
-				if (!exit2)
-				{
-					return;
-				}
-				ui->tableWidget->item(_index - i, 0)->setText(text);
-			}
-			addMessage(QString("fly time:%1").arg(i), Qt::blue);
-			if (i != 0)
-				updateStatistics();
-		}
 		_step = 103;
 		break;
 	case 103:
@@ -4026,13 +4105,14 @@ FLAG3:
 		break;
 	case 110:
 	{
-		updateStatistics();
+		//updateStatistics();
 		if (++_index < ui->tableWidget->rowCount())
 		{
 			_step = 90;
 			break;
 		}
 		_step = 120;
+		addMessage(QString("printf completed!"), Qt::blue);
 		break;
 	}
 	case 115:
@@ -4069,7 +4149,8 @@ FLAG3:
 		break;
 	case 120:
 		//µÚËÄÖá»ØÔ­µã
-		smp86xHandler[0]->home(4);
+		smp86xHandler[0]->home(3);
+		addMessage(QString("Axis 4 home!"), Qt::blue);
 		_step = 121;
 		break;
 	case 121:
@@ -4079,106 +4160,107 @@ FLAG3:
 		break;
 	case 130:
 		procFlag.scancode_start = ui->checkBox_4->isChecked();
+		addMessage(QString("judge scancode"), Qt::blue);
 		_step = 140;
 		break;
 	case 140:
 		if(procFlag.scancode_start)
 			break;
-
-#ifdef BarcodePrintService
-		if (ui->actionSfc->isChecked() && printInfo.child_serial.size())
-		{
-			QString msg;
-			QString endpoint = settings.value("Sfc/endpoint").toString();
-			QString orderNo  = settings.value("Sfc/order_no").toString();
-			QString stationName  = settings.value("Sfc/station_name").toString();
-			if (!sfcWin->FinishPrintInfo(endpoint, orderNo, stationName, printInfo.child_serial.join(";"), printInfo.bound_serial, msg))
-			{
-				sigStat.alarm = 0;
-				int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), QString::fromUtf16(L"FinishPrintInfoÊ§°Ü!\n%1").arg(msg), QString::fromUtf16(L"ºöÂÔ"), QString::fromUtf16(L"ÔÝÍ£"));
-				sigStat.alarm = 1;
-				if(res == 1)
-				{
-					procFlag.printing_pause = true;
-					return;
-				}
-			}
-		}
-#endif // BarcodePrintService
-#ifdef FoxlinkAdd
-		if (!strEmployee.isNull() && ui->actionSfc->isChecked())
-		{
-			QString lineName = settings.value("Sfc/linename").toString();
-			QString strData;
-			if(!ui->checkBox_5->isChecked())
-			{
-				if (printInfo.bound_serial == "OK")
-					strData = lineName + ";7;" + strEmployee + ";" + printInfo.panel_no + ";OK;";
-				else
-				{
-					strData = lineName + ";51;" + strEmployee + ";" + printInfo.panel_no + ";NG;";
-					printInfo.child_state.removeAll("OK");
-					strData += printInfo.child_state.join("|") + ";";
-					//for (int _i = 0; _i < printInfo.child_state.size(); _i++)
-					//	if (printInfo.child_state[_i] != "OK")
-					//		strData += QString("%1:EC01|").arg(_i + 1);
-					//strData.replace(QRegExp("\\|$"), ";");
-				}
-				if (!SaveTestData(strData))
-				{
-					//sigStat.alarm = 0;
-					//int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), msg, QString::fromUtf16(L"ÖÐÖ¹"));
-					//sigStat.alarm = 1;
-					on_pushButton_5_clicked();
-				}
-			}
-			else
-			{
-				if (printInfo.bound_serial != "OK")
-				{
-					strData = lineName + ";51;" + strEmployee + ";" + printInfo.panel_no + ";NG;";
-					printInfo.child_state.removeAll("OK");
-					strData += printInfo.child_state.join("|") + ";";
-					//for (int _i = 0; _i < printInfo.child_state.size(); _i++)
-					//	if (printInfo.child_state[_i] != "OK")
-					//		strData += QString("%1:EC01|").arg(_i + 1);
-					//strData.replace(QRegExp("\\|$"), ";");
-					SaveTestData(strData);
-
-					sigStat.alarm = 0;
-					SaveTestData(lineName + ";30;" + strEmployee + ";3;");
-					int res = QMessageBox::warning(this, QString::fromUtf16(L"´íÎó"), QString::fromUtf16(L"ÅçÂë½á¹û¼ì²éNG"), QString::fromUtf16(L"ÖªµÀÁË"), QString::fromUtf16(L"Í£Ö¹"));
-					SaveTestData(lineName + ";30;" + strEmployee + ";23;");
-					sigStat.alarm = 1;
-					if (res == 1)
-					{
-						procFlag.printing_start = false;
-						procFlag.scancode_start = false;
-						return;
-					}
-				}
-				else
-				{
-					strData = lineName + ";26;" + strEmployee + ";" + ui->lineEdit->text() + ";" + printInfo.panel_no + ";" + printInfo.child_serial.join("|") + ";";
-					if (!SaveTestData(strData))
-					{
-						//sigStat.alarm = 0;
-						//int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), msg, QString::fromUtf16(L"ÖÐÖ¹"));
-						//sigStat.alarm = 1;
-						on_pushButton_5_clicked();
-					}
-				}
-			}
-		}
-#endif // FoxlinkAdd
-
-		if(settings.value("debug/pause_when_finished", false).toBool())
-			on_pushButton_18_clicked();
+//
+//#ifdef BarcodePrintService
+//		if (ui->actionSfc->isChecked() && printInfo.child_serial.size())
+//		{
+//			QString msg;
+//			QString endpoint = settings.value("Sfc/endpoint").toString();
+//			QString orderNo  = settings.value("Sfc/order_no").toString();
+//			QString stationName  = settings.value("Sfc/station_name").toString();
+//			if (!sfcWin->FinishPrintInfo(endpoint, orderNo, stationName, printInfo.child_serial.join(";"), printInfo.bound_serial, msg))
+//			{
+//				sigStat.alarm = 0;
+//				int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), QString::fromUtf16(L"FinishPrintInfoÊ§°Ü!\n%1").arg(msg), QString::fromUtf16(L"ºöÂÔ"), QString::fromUtf16(L"ÔÝÍ£"));
+//				sigStat.alarm = 1;
+//				if(res == 1)
+//				{
+//					procFlag.printing_pause = true;
+//					return;
+//				}
+//			}
+//		}
+//#endif // BarcodePrintService
+//#ifdef FoxlinkAdd
+//		if (!strEmployee.isNull() && ui->actionSfc->isChecked())
+//		{
+//			QString lineName = settings.value("Sfc/linename").toString();
+//			QString strData;
+//			if(!ui->checkBox_5->isChecked())
+//			{
+//				if (printInfo.bound_serial == "OK")
+//					strData = lineName + ";7;" + strEmployee + ";" + printInfo.panel_no + ";OK;";
+//				else
+//				{
+//					strData = lineName + ";51;" + strEmployee + ";" + printInfo.panel_no + ";NG;";
+//					printInfo.child_state.removeAll("OK");
+//					strData += printInfo.child_state.join("|") + ";";
+//					//for (int _i = 0; _i < printInfo.child_state.size(); _i++)
+//					//	if (printInfo.child_state[_i] != "OK")
+//					//		strData += QString("%1:EC01|").arg(_i + 1);
+//					//strData.replace(QRegExp("\\|$"), ";");
+//				}
+//				if (!SaveTestData(strData))
+//				{
+//					//sigStat.alarm = 0;
+//					//int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), msg, QString::fromUtf16(L"ÖÐÖ¹"));
+//					//sigStat.alarm = 1;
+//					on_pushButton_5_clicked();
+//				}
+//			}
+//			else
+//			{
+//				if (printInfo.bound_serial != "OK")
+//				{
+//					strData = lineName + ";51;" + strEmployee + ";" + printInfo.panel_no + ";NG;";
+//					printInfo.child_state.removeAll("OK");
+//					strData += printInfo.child_state.join("|") + ";";
+//					//for (int _i = 0; _i < printInfo.child_state.size(); _i++)
+//					//	if (printInfo.child_state[_i] != "OK")
+//					//		strData += QString("%1:EC01|").arg(_i + 1);
+//					//strData.replace(QRegExp("\\|$"), ";");
+//					SaveTestData(strData);
+//
+//					sigStat.alarm = 0;
+//					SaveTestData(lineName + ";30;" + strEmployee + ";3;");
+//					int res = QMessageBox::warning(this, QString::fromUtf16(L"´íÎó"), QString::fromUtf16(L"ÅçÂë½á¹û¼ì²éNG"), QString::fromUtf16(L"ÖªµÀÁË"), QString::fromUtf16(L"Í£Ö¹"));
+//					SaveTestData(lineName + ";30;" + strEmployee + ";23;");
+//					sigStat.alarm = 1;
+//					if (res == 1)
+//					{
+//						procFlag.printing_start = false;
+//						procFlag.scancode_start = false;
+//						return;
+//					}
+//				}
+//				else
+//				{
+//					strData = lineName + ";26;" + strEmployee + ";" + ui->lineEdit->text() + ";" + printInfo.panel_no + ";" + printInfo.child_serial.join("|") + ";";
+//					if (!SaveTestData(strData))
+//					{
+//						//sigStat.alarm = 0;
+//						//int res = QMessageBox::warning(this, QString::fromUtf16(L"SFC´íÎó"), msg, QString::fromUtf16(L"ÖÐÖ¹"));
+//						//sigStat.alarm = 1;
+//						on_pushButton_5_clicked();
+//					}
+//				}
+//			}
+//		}
+//#endif // FoxlinkAdd
+//
+//		if(settings.value("debug/pause_when_finished", false).toBool())
+//			on_pushButton_18_clicked();
+		addMessage(QString("no scancode"), Qt::blue);
 		_step = 150;
 		break;
 	case 150:
 		procFlag.conveyor_ready = false;
-		//writeBadMark();
 		_step = 0;
 		break;
 	}
@@ -4445,20 +4527,24 @@ bool PrintMark::printfCurText()
 		ink_data = ink_data.append(TC);
 	}
 INK_SEND:
-	QString send_inkdata, send_inkdata2,sendCount;
-	//¼ÆËã·¢ËÍÊý¾Ý³¤¶È
-	int countData = ink_data.size();
-	if (countData<10)
-		sendCount = "000" + QString::number(countData);
-	else if (countData<100)
-		sendCount = "00" + QString::number(countData);
-	else if (countData<1000)
-		sendCount = "0" + QString::number(countData);
-	else
-		sendCount = QString::number(countData);
-	send_inkdata = QString("OE%1").arg(sendCount) + ink_data + QString("");
+	//QString send_inkdata, send_inkdata2,sendCount;
+	////¼ÆËã·¢ËÍÊý¾Ý³¤¶È
+	//int countData = ink_data.size();
+	//if (countData<10)
+	//	sendCount = "000" + QString::number(countData);
+	//else if (countData<100)
+	//	sendCount = "00" + QString::number(countData);
+	//else if (countData<1000)
+	//	sendCount = "0" + QString::number(countData);
+	//else
+	//	sendCount = QString::number(countData);
+	//send_inkdata = QString("OE%1").arg(sendCount) + ink_data + QString("");
+	//addMessage(QString("send data is %1/n").arg(send_inkdata), Qt::blue);
+	//inkbool = sendInkData(device, send_inkdata.toLatin1());
+	QString send_inkdata, send_inkdata2;
+	send_inkdata = QString("") + ink_data + QString("");
 	addMessage(QString("send data is %1/n").arg(send_inkdata), Qt::blue);
-	inkbool = sendInkData(device, send_inkdata.toLatin1());
+	inkbool = sendInkData(ink_device, send_inkdata.toLatin1());
 	if (!inkbool)
 	{
 		Sleep(100);
@@ -4745,6 +4831,64 @@ void PrintMark::on_pushButton_25_clicked()
 		speedX[i] = settings.value(QString("Conveyor/speed_%1").arg(i+6), 1000).toInt();
 	}
 	smp86xHandler[1]->start(0, valueAxisX - currentX, speedX[0], speedX[1], speedX[2]/1000.0);
+}
+
+void PrintMark::on_pushButton_26_clicked()
+{
+	for (int i = 0; i < ui->tableWidget->rowCount(); i++)
+	{
+		if (ui->tableWidget->item(i,5)->text().toInt() == 0)
+		{
+			ui->tableWidget->item(i, 0)->setBackground(Qt::white);
+		}
+		if (ui->tableWidget->item(i, 5)->text().toInt() == 90)
+		{
+			ui->tableWidget->item(i, 0)->setBackground(Qt::lightGray);
+		}
+		if (ui->tableWidget->item(i, 5)->text().toInt() == 180)
+		{
+			ui->tableWidget->item(i, 0)->setBackground(Qt::gray);
+		}
+		if (ui->tableWidget->item(i, 5)->text().toInt() == 270)
+		{
+			ui->tableWidget->item(i, 0)->setBackground(Qt::darkGray);
+		}
+	}
+}
+
+void PrintMark::drawToAngel()
+{
+	for (int j = 0; j < ui->tableWidget->rowCount(); j++)
+	{
+		if (ui->tableWidget->item(j, 5)->text().toInt() == 0)
+		{
+			for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+			{
+				ui->tableWidget->item(j, i)->setBackground(QColor("#FFFFFF"));
+			}
+		}
+		if (ui->tableWidget->item(j, 5)->text().toInt() == 90)
+		{
+			for (int i = 0; i < ui->tableWidget->columnCount() ; i++)
+			{
+				ui->tableWidget->item(j, i)->setBackground(QColor("#FDECA6"));
+			}
+		}
+		if (ui->tableWidget->item(j, 5)->text().toInt() == 180)
+		{
+			for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+			{
+				ui->tableWidget->item(j, i)->setBackground(QColor("#FFFB3B"));
+			}
+		}
+		if (ui->tableWidget->item(j, 5)->text().toInt() == 270)
+		{
+			for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+			{
+				ui->tableWidget->item(j, i)->setBackground(QColor("#AED581"));
+			}
+		}
+	}
 }
 
 // void PrintMark::on_pushButton_26_clicked()
@@ -5396,14 +5540,6 @@ void PrintMark::updateStatistics()
 	{
 		ink_data = timrChange(num, "ink_printf",code);
 	}
-// 	QByteArray next = settings.value("Code/next", "0001").toString().toLatin1();
-// 	QByteArray first = settings.value("Code/first", "0001").toString().toLatin1();
-// 	QByteArray prefix = settings.value("Code/prefix", "F0P54S").toString().toLatin1();
-// 	QByteArray subfix = settings.value("Code/subfix", "FY9Y9Z1").toString().toLatin1();
-// 	while(first < next && ++count < total)
-// 	{
-// 		first = nextCode(a);
-// 	}
 	if (chushi == 1)
 	{
 		count = 0;
@@ -5429,6 +5565,7 @@ void PrintMark::updateStatistics()
 	}
 	else
 		count++;
+CUR:
 	ui->lcdNumber->display(total);
 	ui->lcdNumber_2->display(count);
 	ui->lcdNumber_3->display(total - count);
@@ -5664,6 +5801,41 @@ void PrintMark::on_tableWidget_cellChanged(int row, int column)
 	case 1:
 	case 2:
 	case 5:
+		if (column == 5)
+		{
+			QtConcurrent::run([this]() {
+				Sleep(50);
+				drawToAngel();
+			});
+			/*		if (ui->tableWidget->item(row, 5)->text().toInt() == 0)
+					{
+						for (int i=0;i<ui->tableWidget->columnCount();i++)
+						{
+							ui->tableWidget->item(row, i)->setBackground(QColor("#FFFFFF"));
+						}
+					}
+					if (ui->tableWidget->item(row, 5)->text().toInt() == 90)
+					{
+						for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+						{
+							ui->tableWidget->item(row, i)->setBackground(QColor("#FFF59D"));
+						}
+					}
+					if (ui->tableWidget->item(row, 5)->text().toInt() == 180)
+					{
+						for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+						{
+							ui->tableWidget->item(row, i)->setBackground(QColor("#FFFB3B"));
+						}
+					}
+					if (ui->tableWidget->item(row, 5)->text().toInt() == 270)
+					{
+						for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+						{
+							ui->tableWidget->item(row, i)->setBackground(QColor("#AED581"));
+						}
+					}*/
+		}
 		setWindowModified(true);
 		break;
 	}
@@ -5783,9 +5955,24 @@ void PrintMark::on_actionMaintain2_triggered(bool checked)
 
 void PrintMark::on_actiondpyBattery_triggered()
 {
-	pyBattery* py = new pyBattery(this);
-	py->show();
-	py->raise();
+	if (smp86xHandler[2]->isOpen() /*&& smp86xHandler[3]->isOpen()*/)
+	{
+		pyBattery* py = new pyBattery(smp86xHandler[2],smp86xHandler[3]);
+		py->show();
+		py->raise();
+		return;
+	}
+	smp86xHandler[2]->quit();
+// 	smp86xHandler[3]->quit();
+// 	QtConcurrent::run([this]() {
+// 		Sleep(500);
+// 		QSettings settings;
+// 		QString comport = settings.value("electricity/com", "COM1").toString();
+// 		smp86xHandler[2] = new Smp86xHandler(comport, 1);
+// 		QString comport2 = settings.value("AirPressure/com", "COM2").toString();
+// 		smp86xHandler[3] = new Smp86xHandler(comport2, 2);
+// 	});
+	QMessageBox::warning(this, QString::fromUtf16(L"¾¯¸æ"), QString::fromUtf16(L"´®¿ÚÎÞ·¨´ò¿ª"));
 }
 
 void PrintMark::on_actionSfcWin_triggered()
@@ -5810,6 +5997,12 @@ QWidget * MyItemDelegate::createEditor( QWidget *parent, const QStyleOptionViewI
 		return comboBox;
 	}
 //#endif // _FOXLINK
+	if (index.column() == 5)
+	{
+		QComboBox* comboBox2 = new QComboBox(parent);
+		comboBox2->addItems(QStringList() << "0" << "90" << "180" << "270");
+		return comboBox2;
+	}
 	return QStyledItemDelegate::createEditor(parent, option, index);
 }
 
@@ -5818,11 +6011,17 @@ void MyItemDelegate::setEditorData( QWidget *editor, const QModelIndex &index ) 
 //#ifdef _FOXLINK
 	if (index.column() == 6)
 	{
+		QComboBox* comboBox2 = qobject_cast<QComboBox*>(editor);
+		comboBox2->setCurrentIndex(comboBox2->findText(index.model()->data(index).toString()));
+		comboBox2->showPopup();
+	}
+//#endif // _FOXLINK
+	if (index.column() == 5)
+	{
 		QComboBox* comboBox = qobject_cast<QComboBox*>(editor);
 		comboBox->setCurrentIndex(comboBox->findText(index.model()->data(index).toString()));
 		comboBox->showPopup();
 	}
-//#endif // _FOXLINK
 	return QStyledItemDelegate::setEditorData(editor, index);
 }
 
@@ -5836,8 +6035,13 @@ void MyItemDelegate::setModelData( QWidget *editor, QAbstractItemModel *model, c
 		return;
 	}
 //#endif // _FOXLINK
+	if (index.column() == 5)
+	{
+		QComboBox* comboBox2 = qobject_cast<QComboBox*>(editor);
+		model->setData(index, comboBox2->currentText());
+		return;
+	}
 	return QStyledItemDelegate::setModelData(editor, model, index);
-
 }
 
 void MyItemDelegate::updateEditorGeometry( QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index ) const

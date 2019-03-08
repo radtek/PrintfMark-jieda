@@ -108,8 +108,9 @@ protected slots:
 	void on_pushButton_23_clicked();   //喷码机初始化
 	void on_pushButton_24_clicked();   //修改喷码机模板
 	void on_pushButton_25_clicked();   //X步进调宽	
-	//void on_pushButton_26_clicked();
+	void on_pushButton_26_clicked();
 
+	void drawToAngel();   //为角度而变色
 	void on_toolButton_clicked(bool checked);	// 背景灯
 	void on_toolButton_2_clicked();				// 基准1
 	void on_toolButton_3_clicked();				// 基准2
@@ -161,7 +162,7 @@ protected:
 private:
 	Ui::PrintMarkClass* ui;
 
-	Smp86xHandler* smp86xHandler[3];
+	Smp86xHandler* smp86xHandler[4];
 	QLabel* labelCom[4];
 	QIODevice* device;
 	QIODevice* ink_device;

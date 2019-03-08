@@ -9,7 +9,7 @@ class Conveyor : public QWidget
 	Q_OBJECT
 
 public:
-	Conveyor(Smp86xHandler* sh, QWidget *parent = 0);
+	Conveyor(Smp86xHandler* sh, Smp86xHandler* sh2, QWidget *parent = 0);
 	~Conveyor();
 
 	void setHandler(Smp86xHandler* smp86xHandler){
@@ -41,6 +41,7 @@ protected slots:
 	void slotSpeedValueChanged(int value);
 private:
 	Smp86xHandler* smp86xHandler;
+	Smp86xHandler* smp86xHandler2;
 };
 
 #endif // CONVEYOR_H
