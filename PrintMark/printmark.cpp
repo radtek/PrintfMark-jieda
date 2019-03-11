@@ -111,7 +111,7 @@ PrintMark::PrintMark(QWidget *parent)
 	ui->mainToolBar->addSeparator();
 	ui->mainToolBar->addWidget(ui->pushButton_22);
 	ui->mainToolBar->addSeparator();
-// 	ui->mainToolBar->addWidget(ui->checkBox_6);
+ 	ui->mainToolBar->addWidget(ui->checkBox_6);
  	ui->mainToolBar->addWidget(ui->pushButton_23);
  	ui->mainToolBar->addWidget(ui->checkBox_8);
 	ui->mainToolBar->addWidget(ui->checkBox_9);
@@ -415,7 +415,7 @@ PASSC:
 			//ui->pushButton_13->setVisible(false);
 			ui->pushButton_14->setVisible(false);
 			ui->pushButton_17->setVisible(false);
-			ui->checkBox_6->setVisible(false);
+			//ui->checkBox_6->setVisible(false);
 			ui->checkBox_7->setVisible(false);
 			ui->pushButton_13->setVisible(false);
 			ui->checkBox->setVisible(false);
@@ -2230,8 +2230,16 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		}
 		break;
  	case 16:
- 		if (((ss[0].inputs >> 18) & 0x1) == 1)	// 板离开存板感应
+ 		if (((ss[0].inputs >> 18) & 0x1) == 0)	// 板离开存板感应
  			break;
+		if (ui->checkBox_6->isChecked())
+		{
+			if (_step2 == 0)
+			{
+				_step1 = 0;
+			}
+			break;
+		}
  		_step1 = 0;
 // 		smp86xHandler[1]->stop(1);
 		timeRecord->setTime(0, timeIn.elapsed());      //前板等待时间
@@ -2274,7 +2282,7 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 		_step2 = 1;
 		break;
 	case 1:
-		if (((ss[0].inputs >> 18) & 0x1) == 0 && _step1 == 0)
+		if (((ss[0].inputs >> 18) & 0x1) == 0 && _step1 == 16)
 		{
 			smp86xHandler[0]->setOutput(12, 0);				// 启动电机1
 			//smp86xHandler[1]->start(1, v1, -v2, v3 / 1000.0);     // 启动电机1
@@ -2392,6 +2400,11 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 	case 64:
 		if (((ss[0].inputs >> 17) & 0x1) == 0)
 		{
+			if (ui->checkBox_6->isChecked())
+			{
+				_step2 = 200;
+				break;
+			}
 			_step2 = 65;
 		}
 		break;
@@ -2469,16 +2482,45 @@ void PrintMark::runConveyor(SMP86X_STATUS ss[])
 // 		smp86xHandler[1]->stop(0);
 // 		_step2 = 0;
 // 		break;
-// 		//同进同出步骤
-// 	case 200:
-// 		if (((ss[1].inputs >> 4) & 0x1) == 1)
-// 			break;
-// 		_step2 = 210;
-// 	case 210:
-// 		if (((ss[1].inputs >> 4) & 0x1) == 0)
-// 			break;
-// 		smp86xHandler[1]->stop(0);
-// 		_step2 = 0;
+ 		//同进同出步骤
+ 	case 200:
+		smp86xHandler[0]->setOutput(15, 0);				// 启动反转
+		smp86xHandler[0]->setOutput(13, 0);
+		_step2 = 201;
+		break;
+	case 201:
+		smp86xHandler[0]->setOutput(14, 0);				// 启动电机2
+		smp86xHandler[0]->setOutput(12, 0);  
+		_step2 = 210;
+		break;
+ 	case 210:
+		if (((ss[0].inputs >> 18) & 0x1) == 0)
+		{
+			_step2 = 211;
+		}
+		break;
+	case 211:
+		if (((ss[0].inputs >> 18) & 0x1) == 1)
+		{
+			_step2 = 212;
+			smp86xHandler[0]->setOutput(15, 1);     //stop conveyor2
+			smp86xHandler[0]->setOutput(14, 1);
+		}
+		break;
+	case 212:
+		if (((ss[0].inputs >> 10) & 0x1) == 0)
+		{
+			_step2 = 213;
+		}
+		break;
+	case 213:
+		if (((ss[0].inputs >> 10) & 0x1) == 1)
+		{
+			_step2 = 0;
+			smp86xHandler[0]->setOutput(13, 1);         //stop conveyor1
+			smp86xHandler[0]->setOutput(12, 1);
+		}
+		break;
  	}
 }
 #else
@@ -3879,8 +3921,8 @@ IGNORE1:
 			{
 				x = ui->tableWidget->item(_index, 3)->text().toDouble() - ax + dx;
 				y = ui->tableWidget->item(_index, 4)->text().toDouble() - ay + dy;
-				dx1 = offsetFly * cos(u*M_PI / 180);
-				dy1 = offsetFly * sin(u*M_PI / 180);
+				dx1 = offsetFly * cos(u1*M_PI / 180);
+				dy1 = offsetFly * sin(u1*M_PI / 180);
 				order = 1;
 				if (ui->tableWidget->item(_index, 5)->text().toInt() == 0)
 				{
@@ -3923,8 +3965,8 @@ IGNORE1:
 			{
 				x = ui->tableWidget->item(_index - order-sumNumber+2, 3)->text().toDouble() - ax + dx;
 				y = ui->tableWidget->item(_index - order-sumNumber+2, 4)->text().toDouble() - ay + dy;
-				dx1 = offsetFly * cos(u*M_PI / 180);
-				dy1 = offsetFly * sin(u*M_PI / 180);
+				dx1 = offsetFly * cos(u1*M_PI / 180);
+				dy1 = offsetFly * sin(u1*M_PI / 180);
 				if (flagSame == 1)
 				{
 					if (ui->tableWidget->item(_index, 5)->text().toInt() == 90)

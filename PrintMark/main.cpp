@@ -80,10 +80,10 @@ int main(int argc, char *argv[])
 	settings.setValue("save_close", false);
 	PrintMark w;
 	w.showMaximized();
- //#ifdef WTxRTE
- //	RTEdcsn::mainWindow = &w;
- //	RTEdcsn::initialize1("PrintMark", NULL, 2000, 10000, _rtedcsn_func);
- //#endif // WTxRTE
- //	//a.connect(&a, &QApplication::aboutToQuit, &w, &QMainWindow::close);
+//  #ifdef WTxRTE
+//  	RTEdcsn::mainWindow = &w;
+//  	RTEdcsn::initialize1("PrintMark", NULL, 2000, 10000, _rtedcsn_func);
+//  #endif // WTxRTE
+//  	//a.connect(&a, &QApplication::aboutToQuit, &w, &QMainWindow::close);
 	return a.exec();
 }
