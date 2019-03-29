@@ -12,7 +12,7 @@ class Conveyor;
 class SfcWin;
 class TimeRecord;
 
-#define offsetFly 10000
+#define offsetFly 3000
 
 struct PROCFLAG
 {
